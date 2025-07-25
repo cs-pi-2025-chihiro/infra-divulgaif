@@ -1,0 +1,82 @@
+services: 
+  divulgaif-primary:
+    image: postgres:15
+    container_name: divulgaif-primary
+    environment:
+      POSTGRES_DB: ${DIVULGAIF_DB}
+      POSTGRES_USER: ${DIVULGAIF_DB_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD}
+      POSTGRES_INITDB_ARGS: "--wal-segsize=64"
+    command: >
+      postgres
+        -c wal_level=replica
+        -c max_wal_senders=10
+        -c max_replication_slots=10
+        -c hot_standby=on
+    ports:
+      - "5432:5432"
+    volumes:
+      - divulgaif_data_primary:/var/lib/postgresql/data
+    networks:
+      - divulgaif_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DIVULGAIF_DB_USER} -d ${DIVULGAIF_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  divulgaif-secondary:
+    image: postgres:15
+    container_name: divulgaif-secondary
+    environment:
+      POSTGRES_DB: ${DIVULGAIF_TEST_DB}
+      POSTGRES_USER: ${DIVULGAIF_DB_TEST_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD}
+      POSTGRES_INITDB_ARGS: "--wal-segsize=64"
+    command: >
+      postgres
+        -c wal_level=replica
+        -c max_wal_senders=10
+        -c max_replication_slots=10
+        -c hot_standby=on
+    ports:
+      - "5433:5432"
+    volumes:
+      - divulgaif_data_secondary:/var/lib/postgresql/data
+    networks:
+      - divulgaif_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DIVULGAIF_DB_TEST_USER} -d ${DIVULGAIF_TEST_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  backend:
+    build:
+      context: ../divulgaif-back
+      dockerfile: Dockerfile
+    container_name: divulgaif-back
+    environment:
+      DIVULGAIF_DB: ${DIVULGAIF_DB}
+      DIVULGAIF_DB_USER: ${DIVULGAIF_DB_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DIVULGAIF_JWT_TOKEN: ${DIVULGAIF_JWT_TOKEN}
+      DIVULGAIF_DB_HOST: divulgaif-primary
+    ports:
+      - "8081:8081"
+    networks:
+      - divulgaif_network
+    depends_on:
+      divulgaif-primary:
+        condition: service_healthy
+
+volumes:
+  divulgaif_data_primary:  
+  divulgaif_data_secondary:
+
+networks:
+  divulgaif_network:
+    driver: bridge
