@@ -22,6 +22,8 @@ Feito por Artur Zanqueta, Eduardo Ceciliato, Igor Felipe de Souza, SM: Mateus Ra
 
 ## Variáveis de Ambiente
 
+Você pode utilizar tanto um arquivo `.env` quanto definir as variáveis de ambiente em seu sistema operacional.
+
 Crie um arquivo `.env` na raiz do seu projeto com as seguintes variáveis:
 
 ```env
